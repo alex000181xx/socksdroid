@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export NDK_PATH=$ANDROID_SDK_ROOT/ndk/23.1.7779620
+export NDK_PATH=$ANDROID_SDK_ROOT/ndk/27.0.12077973
 
 rm -rf libs
 rm -f libs.zip
