@@ -1,4 +1,4 @@
-name: Build Native libs and upload libs folder
+name: Build Native libs and upload libs.zip
 
 on:
   workflow_dispatch:
@@ -23,7 +23,7 @@ jobs:
     - name: Install required packages and Android SDK command line tools
       run: |
         sudo apt-get update
-        sudo apt-get install -y unzip wget build-essential coreutils
+        sudo apt-get install -y unzip wget build-essential coreutils zip
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
         unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT
         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
@@ -44,12 +44,16 @@ jobs:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
       run: ./app/src/main/build-jni.sh
 
-    - name: List libs folder content
-      run: ls -R libs || echo "libs folder not found"
+    - name: List libs.zip if exists
+      run: |
+        if [ -f libs.zip ]; then
+          ls -lh libs.zip
+        else
+          echo "libs.zip not found"
+        fi
 
-    - name: Upload libs artifact (ZIP)
+    - name: Upload libs.zip artifact
       uses: actions/upload-artifact@v4
       with:
-        name: libs
-        path: libs/
-        retention-days: 30
+        name: libs-archive
+        path: libs.zip
