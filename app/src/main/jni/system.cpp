@@ -1,4 +1,4 @@
-// File: app/src/main/jni/system.cpp
+// File: android/app/src/main/jni/system.cpp
 #define LOG_TAG "SocksVpnPlugin"
 
 #include <jni.h>
@@ -17,17 +17,24 @@
 #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-// JNI wrapper for static native System.jniclose(int fd)
+// ----------------------------------------------------------------------------
+// 1) الدوال الـ JNI ثابتة (static) لذا الوسيط الثاني هو jclass وليس jobject.
+// 2) أضفنا extern "C" لضمان عدم تعدُّل الأسماء عند الـ C++
+// ----------------------------------------------------------------------------
+
+// void System.jniclose(int fd)
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_jforu_proxies_System_jniclose(JNIEnv *env, jclass clazz, jint fd) {
+    LOGI(">>> Java_com_jforu_proxies_System_jniclose(fd=%d)", fd);
     close(fd);
 }
 
-// JNI wrapper for static native System.sendfd(int tun_fd, String sockPath)
+// int System.sendfd(int tun_fd, String sockPath)
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_jforu_proxies_System_sendfd(JNIEnv *env, jclass clazz, jint tun_fd, jstring sock) {
+    LOGI(">>> Java_com_jforu_proxies_System_sendfd(tun_fd=%d)", tun_fd);
     int fd;
     struct sockaddr_un addr;
     const char *sockpath = env->GetStringUTFChars(sock, nullptr);
@@ -59,19 +66,19 @@ Java_com_jforu_proxies_System_sendfd(JNIEnv *env, jclass clazz, jint tun_fd, jst
     return 0;
 }
 
-// المسار الكامل للكلاس في الجافا
+// -----------------------------------------------------------------------------
+// مسار الكلاس الكامل في الجافا
+// -----------------------------------------------------------------------------
 static const char *classPathName = "com/jforu/proxies/System";
 
-// ربط أسماء الدوال بالـ JNI
+// جدول الربط
 static JNINativeMethod method_table[] = {
-    { "jniclose", "(I)V",
-        (void*)Java_com_jforu_proxies_System_jniclose },
-    { "sendfd", "(ILjava/lang/String;)I",
-        (void*)Java_com_jforu_proxies_System_sendfd }
+    { "jniclose", "(I)V",      (void*)Java_com_jforu_proxies_System_jniclose },
+    { "sendfd",   "(ILjava/lang/String;)I", (void*)Java_com_jforu_proxies_System_sendfd }
 };
 
 static int registerNativeMethods(JNIEnv* env, const char* className,
-    JNINativeMethod* methods, int numMethods) {
+                                 JNINativeMethod* methods, int numMethods) {
     jclass clazz = env->FindClass(className);
     if (!clazz) {
         LOGE("Native registration unable to find class '%s'", className);
@@ -91,7 +98,11 @@ static int registerAll(JNIEnv* env) {
            ? JNI_TRUE : JNI_FALSE;
 }
 
-jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+// Called when the shared library is loaded.
+extern "C"
+JNIEXPORT jint JNICALL
+JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+    LOGI(">>> JNI_OnLoad called");
     JNIEnv* env = nullptr;
     if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_4) != JNI_OK) {
         LOGE("GetEnv failed");
@@ -101,6 +112,6 @@ jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
         LOGE("registerAll failed");
         return -1;
     }
-    LOGI("JNI_OnLoad succeeded");
+    LOGI("<<< JNI_OnLoad succeeded");
     return JNI_VERSION_1_4;
 }
