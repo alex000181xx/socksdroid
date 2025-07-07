@@ -1,133 +1,106 @@
-#define LOG_TAG "Socksdroid"
+// File: app/src/main/jni/system.cpp
+#define LOG_TAG "SocksVpnPlugin"
 
-#include "jni.h"
+#include <jni.h>
 #include <android/log.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include <sys/un.h>
 #include <sys/socket.h>
 #include <ancillary.h>
 
-#define LOGI(...) do { __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__); } while(0)
-#define LOGW(...) do { __android_log_print(ANDROID_LOG_WARN, LOG_TAG, __VA_ARGS__); } while(0)
-#define LOGE(...) do { __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__); } while(0)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, __VA_ARGS__)
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,  LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
-void Java_com_jforu_proxies_na_jniclose(JNIEnv *env, jobject thiz, jint fd) {
+// JNI wrapper for static native System.jniclose(int fd)
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_jforu_proxies_System_jniclose(JNIEnv *env, jclass clazz, jint fd) {
     close(fd);
 }
 
-jint Java_com_jforu_proxies_na_sendfd(JNIEnv *env, jobject thiz, jint tun_fd, jstring sock) {
+// JNI wrapper for static native System.sendfd(int tun_fd, String sockPath)
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_jforu_proxies_System_sendfd(JNIEnv *env, jclass clazz, jint tun_fd, jstring sock) {
     int fd;
     struct sockaddr_un addr;
-    const char *sockpath;
+    const char *sockpath = env->GetStringUTFChars(sock, nullptr);
 
-    if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
-        LOGE("socket() failed: %s (socket fd = %d)\n", strerror(errno), fd);
-        return (jint)-1;
+    if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        LOGE("socket() failed: %s (fd=%d)", strerror(errno), fd);
+        env->ReleaseStringUTFChars(sock, sockpath);
+        return -1;
     }
 
     memset(&addr, 0, sizeof(addr));
     addr.sun_family = AF_UNIX;
-    sockpath = env->GetStringUTFChars(sock, 0);
-    strncpy(addr.sun_path, sockpath, sizeof(addr.sun_path)-1);
+    strncpy(addr.sun_path, sockpath, sizeof(addr.sun_path) - 1);
     env->ReleaseStringUTFChars(sock, sockpath);
 
     if (connect(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1) {
-        LOGE("connect() failed: %s (fd = %d)\n", strerror(errno), fd);
+        LOGE("connect() failed: %s (fd=%d)", strerror(errno), fd);
         close(fd);
-        return (jint)-1;
+        return -1;
     }
 
     if (ancil_send_fd(fd, tun_fd)) {
-        LOGE("ancil_send_fd: %s", strerror(errno));
+        LOGE("ancil_send_fd() failed: %s", strerror(errno));
         close(fd);
-        return (jint)-1;
+        return -1;
     }
 
     close(fd);
     return 0;
 }
 
-static const char *classPathName = "com/jforu/proxies/na";
+// المسار الكامل للكلاس في الجافا
+static const char *classPathName = "com/jforu/proxies/System";
 
+// ربط أسماء الدوال بالـ JNI
 static JNINativeMethod method_table[] = {
     { "jniclose", "(I)V",
-        (void*) Java_com_jforu_proxies_na_jniclose },
+        (void*)Java_com_jforu_proxies_System_jniclose },
     { "sendfd", "(ILjava/lang/String;)I",
-        (void*) Java_com_jforu_proxies_na_sendfd }
+        (void*)Java_com_jforu_proxies_System_sendfd }
 };
 
-
-
-/*
- * Register several native methods for one class.
- */
 static int registerNativeMethods(JNIEnv* env, const char* className,
-    JNINativeMethod* gMethods, int numMethods)
-{
-    jclass clazz;
-
-    clazz = env->FindClass(className);
-    if (clazz == NULL) {
+    JNINativeMethod* methods, int numMethods) {
+    jclass clazz = env->FindClass(className);
+    if (!clazz) {
         LOGE("Native registration unable to find class '%s'", className);
         return JNI_FALSE;
     }
-    if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
+    if (env->RegisterNatives(clazz, methods, numMethods) < 0) {
         LOGE("RegisterNatives failed for '%s'", className);
         return JNI_FALSE;
     }
-
     return JNI_TRUE;
 }
 
-/*
- * Register native methods for all classes we know about.
- *
- * returns JNI_TRUE on success.
- */
-static int registerNatives(JNIEnv* env)
-{
-  if (!registerNativeMethods(env, classPathName, method_table,
-                 sizeof(method_table) / sizeof(method_table[0]))) {
-    return JNI_FALSE;
-  }
-
-  return JNI_TRUE;
+static int registerAll(JNIEnv* env) {
+    return registerNativeMethods(env, classPathName,
+                                 method_table,
+                                 sizeof(method_table)/sizeof(method_table[0]))
+           ? JNI_TRUE : JNI_FALSE;
 }
 
-/*
- * This is called by the VM when the shared library is first loaded.
- */
-
-typedef union {
-    JNIEnv* env;
-    void* venv;
-} UnionJNIEnvToVoid;
-
-jint JNI_OnLoad(JavaVM* vm, void* reserved) {
-    UnionJNIEnvToVoid uenv;
-    uenv.venv = NULL;
-    jint result = -1;
-    JNIEnv* env = NULL;
-
-    LOGI("JNI_OnLoad");
-
-    if (vm->GetEnv(&uenv.venv, JNI_VERSION_1_4) != JNI_OK) {
-        LOGE("ERROR: GetEnv failed");
-        goto bail;
+jint JNI_OnLoad(JavaVM* vm, void* /*reserved*/) {
+    JNIEnv* env = nullptr;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_4) != JNI_OK) {
+        LOGE("GetEnv failed");
+        return -1;
     }
-    env = uenv.env;
-
-    if (registerNatives(env) != JNI_TRUE) {
-        LOGE("ERROR: registerNatives failed");
-        goto bail;
+    if (!registerAll(env)) {
+        LOGE("registerAll failed");
+        return -1;
     }
-
-    result = JNI_VERSION_1_4;
-
-bail:
-    return result;
+    LOGI("JNI_OnLoad succeeded");
+    return JNI_VERSION_1_4;
 }
