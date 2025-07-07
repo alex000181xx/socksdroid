@@ -1,4 +1,4 @@
-name: Build JNI SO libs only (ndk-build script)
+name: Build Native Libraries and Binaries
 
 on:
   workflow_dispatch:
@@ -39,13 +39,19 @@ jobs:
     - name: Make build-jni.sh executable
       run: chmod +x ./app/src/main/build-jni.sh
 
-    - name: Build native libraries using build-jni.sh
+    - name: Build native libs and binaries using build-jni.sh
       env:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
       run: ./app/src/main/build-jni.sh
 
-    - name: Upload jniLibs artifact
+    - name: Upload jniLibs artifact (shared libs)
       uses: actions/upload-artifact@v4
       with:
         name: jniLibs
         path: app/src/main/jniLibs/
+
+    - name: Upload binaries artifact (executables)
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries
+        path: app/src/main/bin/
