@@ -44,6 +44,12 @@ jobs:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
       run: ./app/src/main/build-jni.sh
 
+    - name: List jniLibs content
+      run: ls -R app/src/main/jniLibs || echo "jniLibs folder not found"
+
+    - name: List bin content
+      run: ls -R app/src/main/bin || echo "bin folder not found"
+
     - name: Upload jniLibs artifact (shared libs)
       uses: actions/upload-artifact@v4
       with:
