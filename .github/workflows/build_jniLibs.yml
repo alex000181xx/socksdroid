@@ -34,7 +34,7 @@ jobs:
           rm -rf $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools
         fi
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
-        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-30" "ndk;23.1.7779620"
+        $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-30" "ndk;27.0.12077973"
 
     - name: Make build-jni.sh executable
       run: chmod +x ./app/src/main/build-jni.sh
