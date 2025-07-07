@@ -2,13 +2,12 @@
 
 export NDK_PATH=$ANDROID_SDK_ROOT/ndk/23.1.7779620
 
-LIBS_DIR=libs
-rm -rf $LIBS_DIR
+rm -rf libs
 rm -f libs.zip
 
 $NDK_PATH/ndk-build -C app/src/main/jni
 
-# تحقق من مكان وجود libs فعليًا
+# تحقق من مكان وجود libs
 if [ -d "libs" ]; then
   echo "libs found in project root"
   LIBS_DIR=libs
@@ -17,9 +16,10 @@ elif [ -d "app/src/main/libs" ]; then
   LIBS_DIR=app/src/main/libs
 else
   echo "libs folder not found"
+  LIBS_DIR=""
 fi
 
-if [ -d "$LIBS_DIR" ] && [ "$(ls -A $LIBS_DIR)" ]; then
+if [ -n "$LIBS_DIR" ] && [ "$(ls -A $LIBS_DIR)" ]; then
   zip -r libs.zip $LIBS_DIR
 else
   echo "Warning: libs directory is missing or empty. No zip file created."
