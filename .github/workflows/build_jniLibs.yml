@@ -1,7 +1,7 @@
 name: Build JNI SO libs only
 
 on:
-  workflow_dispatch:  # تفعيل زر Run يدوي
+  workflow_dispatch:  # لتشغيل يدوي بالزر
 
 jobs:
   build-so:
@@ -27,7 +27,8 @@ jobs:
         wget https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip -O cmdline-tools.zip
         unzip cmdline-tools.zip -d $ANDROID_SDK_ROOT
         mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-        mv $ANDROID_SDK_ROOT/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+        mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+        rm -rf $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools
         yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT --licenses
         $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "platform-tools" "platforms;android-30" "ndk;23.1.7779620"
 
@@ -37,10 +38,8 @@ jobs:
         PATH: $ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
       run: |
         echo "Building only native libraries (SO files)..."
-        # تنفيذ بناء مكتبات native فقط
-        # لو تستخدم Gradle مع NDK build استخدم هذا الأمر مع تحديد مهمة بناء native فقط
         ./gradlew clean
-        ./gradlew :app:externalNativeBuildDebug  # فقط يبني native libs ولا يبني التطبيق نفسه
+        ./gradlew :app:externalNativeBuildDebug
 
     - name: Upload jniLibs artifact
       uses: actions/upload-artifact@v4
