@@ -43,7 +43,7 @@ jobs:
         ./gradlew :app:externalNativeBuildDebug  # فقط يبني native libs ولا يبني التطبيق نفسه
 
     - name: Upload jniLibs artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: jniLibs
         path: app/src/main/jniLibs/
