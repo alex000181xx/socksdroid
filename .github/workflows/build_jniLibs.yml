@@ -1,4 +1,4 @@
-name: Build Native Libraries and Binaries
+name: Build Native libs and upload libs folder
 
 on:
   workflow_dispatch:
@@ -39,25 +39,17 @@ jobs:
     - name: Make build-jni.sh executable
       run: chmod +x ./app/src/main/build-jni.sh
 
-    - name: Build native libs and binaries using build-jni.sh
+    - name: Build native libs
       env:
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
       run: ./app/src/main/build-jni.sh
 
-    - name: List jniLibs content
-      run: ls -R app/src/main/jniLibs || echo "jniLibs folder not found"
+    - name: List libs folder content
+      run: ls -R libs || echo "libs folder not found"
 
-    - name: List bin content
-      run: ls -R app/src/main/bin || echo "bin folder not found"
-
-    - name: Upload jniLibs artifact (shared libs)
+    - name: Upload libs artifact (ZIP)
       uses: actions/upload-artifact@v4
       with:
-        name: jniLibs
-        path: app/src/main/jniLibs/
-
-    - name: Upload binaries artifact (executables)
-      uses: actions/upload-artifact@v4
-      with:
-        name: binaries
-        path: app/src/main/bin/
+        name: libs
+        path: libs/
+        retention-days: 30
