@@ -51,7 +51,7 @@ jint Java_com_jforu_proxies_jforupro_sendfd(JNIEnv *env, jobject thiz, jint tun_
     return 0;
 }
 
-static const char *classPathName = "com/jforu/proxies/System";
+static const char *classPathName = "com/jforu/proxies/Jforupro";
 
 static JNINativeMethod method_table[] = {
     { "jniclose", "(I)V",
